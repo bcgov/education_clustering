@@ -1,0 +1,65 @@
+---
+title: "Top educational background for LMO2023 skill based clusters"
+author: "Richard Martin"
+format:
+  html:
+    code-fold: true
+    code-summary: "Show the code"
+    page-layout: full
+---
+
+## Intro
+
+In the 2023 LMO we formed clusters of occupations on the basis of skill similarity. This provided two useful bits of information:
+
+1) What occupations share similar skill profiles: useful information for those considering a career change. 
+2) What are the relative skill differences that distinguish the clusters: useful information for those looking for an occupation that requires their relative skill strengths.
+
+Here we take a step back and identify what educational backgrounds are most common for people working in a given cluster. This is useful information for those who know in what cluster they wish to work, but need to choose an educational path that leads to that cluster.
+
+```{r, include=FALSE}
+library(tidyverse)
+library(here)
+library(plotly)
+library(conflicted)
+conflicts_prefer(plotly::layout)
+edu_noc <- read_csv(here("out","edu_noc.csv"))
+skill_clusters <- read_csv(here("out", "skill_clusters.csv"))
+```
+
+
+
+```{r, message=FALSE, fig.width=12, fig.height= 16, fig.retina=2}
+temp <- inner_join(edu_noc, skill_clusters, by=join_by("NOC"))|>
+  group_by(new_cluster, Education)|>
+  summarize(value=sum(value))|>
+  mutate(value=value/sum(value))|>
+  group_by(new_cluster, .add=FALSE)|>
+  slice_max(value, n=30)|>
+  mutate(Education2=Education)|>
+  separate(Education2, into = c("CIP","Highest Attainment"), sep=": ")|>
+  mutate(Education=tidytext::reorder_within(Education, value, new_cluster))
+
+plt <- ggplot(temp, aes(value, 
+                        Education,
+                        fill=`Highest Attainment`,
+                        text=CIP))+
+  geom_col()+
+  scale_x_continuous(labels=scales::percent)+
+  scale_y_discrete( expand = c(0.1, 0.1))+
+  facet_wrap(~new_cluster, scales = "free_y")+
+  theme_minimal()+
+  labs(x=NULL, y=NULL)+
+  theme(axis.text.y=element_blank(), 
+        axis.ticks.y=element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)
+        )
+
+ggplotly(plt, tooltip = "text")|>
+  config(displayModeBar = FALSE)|>
+  layout(legend = list(
+      orientation = "h"
+    )
+  )
+```
+
