@@ -1,5 +1,6 @@
 ---
 title: "Top educational background for LMO2023 skill based clusters"
+subtitle: "Source code: [![github logo](github.png){width=100px}](https://github.com/bcgov/education_clustering){target='_blank'}"
 author: "Richard Martin"
 format:
   html:
