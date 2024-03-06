@@ -4,6 +4,9 @@ library(vroom)
 library(janitor)
 library(corrr)
 
+#constants
+margin_greater_than <- 1000 #only keep rows and columns that sum to more than this
+
 fix_data <- function(vctr){
   vctr|>
     str_remove_all(",")|>
@@ -20,8 +23,16 @@ edu_noc <- raw|>
   fill(`Field of Study`, .direction = "down")|>
   mutate(across(-c("Field of Study", "Highest attainment"), fix_data))|>
   unite("Education", "Field of Study", "Highest attainment", sep=": ")|>
-  pivot_longer(cols=-Education, names_to = "NOC")
+  adorn_totals("both")
 
+#here we do some filtering to limit the sparsity of the data---------------
+keep_columns <- as.vector(edu_noc[edu_noc$Education=="Total",]>margin_greater_than)
+edu_noc <- edu_noc[edu_noc$Total>margin_greater_than, keep_columns]|>
+  select(-Total)|>
+  filter(Education!="Total")|>
+  pivot_longer(cols=-Education, names_to = "NOC", values_to = "value")
+
+#write to disk------------------------------
 write_csv(edu_noc, here("out","edu_noc.csv"))
 
 spear_cor <- edu_noc|>
