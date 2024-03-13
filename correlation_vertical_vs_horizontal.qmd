@@ -4,6 +4,7 @@ subtitle: "Source code: [![github logo](images/github.png){width=100px}](https:/
 author: "Richard Martin"
 format:
   html:
+    self-contained: true
     code-fold: true
     code-summary: "Show the code"
     page-layout: full
@@ -45,24 +46,25 @@ my_dt <- function(tbbl) {
 edu_noc <- read_csv(here("out","edu_noc.csv"))
 
 all_cor <- vroom::vroom(here("out", "all_cor.csv"))|>
-  group_by(cip1, highest1)
+  group_by(cip1, highest1)|>
+  mutate(broad1=str_sub(cip1, 1, 2),
+         broad2=str_sub(cip2, 1, 2))
 
 max_spearman <- all_cor|>
   filter(spearman_cor==max(spearman_cor, na.rm = TRUE))|>
-  mutate(what_same=case_when(cip1!=cip2 & highest1!=highest2 ~ "Neither CIP nor Highest attained",
-                            cip1==cip2 ~ "CIP",
-                            highest1==highest2 ~ "Highest attained",
-                            TRUE ~ "There be dragons"
+  mutate(what_same=case_when(cip1==cip2 & highest1==highest2 ~ "Both  CIP and Highest attained",
+                            cip1!=cip2 & highest1!=highest2 ~ "Neither  CIP nor Highest attained",
+                            cip1==cip2 ~ " CIP",
+                            highest1==highest2 ~ "Highest attained"
                             ))
 
 max_pearson <- all_cor|>
   filter(pearson_cor==max(pearson_cor, na.rm = TRUE))|>
-   mutate(what_same=case_when(cip1!=cip2 & highest1!=highest2 ~ "Neither CIP nor Highest attained",
-                            cip1==cip2 ~ "CIP",
-                            highest1==highest2 ~ "Highest attained",
-                            TRUE ~ "There be dragons"
+  mutate(what_same=case_when(cip1==cip2 & highest1==highest2 ~ "Both  CIP and Highest attained",
+                            cip1!=cip2 & highest1!=highest2 ~ "Neither  CIP nor Highest attained",
+                            cip1==cip2 ~ " CIP",
+                            highest1==highest2 ~ "Highest attained"
                             ))
-
 ```
 
 ## TL;DR
@@ -71,7 +73,7 @@ What types of education are similar? This is a tough question to answer, as we h
 
 In this paper we conjecture that education similarity can be quantified on the basis of labour market outcomes: i.e. if the graduates from two different educations fan out across the labour market in similar manner, we hypothesize the reason why is that they are, in some sense, close substitutes.
 
-Once we have identified the most similar educations, we can investigate *how* they are similar: either in terms of sharing the same CIP at differing levels of highest attainment, or sharing the same highest level of attainment, but in a different CIP.  These measures of similarity shed some light on the question of whether education is more about signalling hidden ability (via highest attainment) or the acquisition of *specific* skills (i.e. same CIP). 
+Once we have identified the most similar educations, we can investigate *how* they are similar: either in terms of sharing the same  CIP at differing levels of highest attainment, or sharing the same highest level of attainment, but in a different  CIP.  These measures of similarity shed some light on the question of whether education is more about signalling hidden ability (via highest attainment) or the acquisition of *specific* skills (i.e. same  CIP). 
 
 ## Intro
 
@@ -81,22 +83,11 @@ Statistics Canada table 98-10-0403-01 forms the basis of the following analysis.
 
 Lets look at the NOC profiles of two educations: a BA in Economics vs. a MA in Economics:
 
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE, fig.width=12, fig.height= 16, fig.retina=2}
 compare_econ <- edu_noc|>
   filter(Education %in% c("45.06 Economics: Master's degree", "45.06 Economics: Bachelor's degree"))|>
   pivot_wider(names_from = Education, values_from = value)
 
-spearman_cor <- compare_econ|>
-  column_to_rownames("NOC")|>
-  correlate(method="spearman")|>
-  pull()|>
-  na.omit()|>
-  round(digits=3)|>
-  as.vector()
-```
-
-
-```{r, message=FALSE, warning=FALSE, fig.width=12, fig.height= 16, fig.retina=2}
 plt <- ggplot(compare_econ, aes(`45.06 Economics: Master's degree`, `45.06 Economics: Bachelor's degree`, text=NOC))+
   geom_jitter(alpha=.5)+
   geom_rug(col=rgb(.5,0,0, alpha=.5))+
@@ -104,7 +95,7 @@ plt <- ggplot(compare_econ, aes(`45.06 Economics: Master's degree`, `45.06 Econo
 ggplotly(plt, tooltip = "text")
 ```
 
-The most notable feature of the data is how skewed it is: For many NOCs the counts are either zero (or very close to zero), with a very small number of NOCs with high counts. Lets look at the same data, log transformed. 
+The most notable feature of the data is how skewed it is: For many NOCs the counts are either zero (or very close to zero), with a very small number of NOCs with high counts. Lets look at the same data on the log10 scale. 
 
 ```{r, message=FALSE, warning=FALSE, fig.width=12, fig.height= 16, fig.retina=2}
 plt <- ggplot(compare_econ, aes(`45.06 Economics: Master's degree`, `45.06 Economics: Bachelor's degree`, text=NOC))+
@@ -149,17 +140,17 @@ plt <- ggplot(compare_closest, aes(`45.06 Economics: Master's degree`, `52.02 Bu
 ggplotly(plt, tooltip = "text")
 ```
 
-Again, if we hover over the off diagonal points, we see management and engineering jobs more prevalent for those with a MBA, and research type jobs more common for people with a MA in Economics. So here we see that there is an (ever so slightly) higher correlation between two different CIPs as the same highest educational attainment than between the same CIP at two different levels of highest attainment. This suggests that the closest fields of study might be found by searching horizontally (across different CIPs at the same level of highest attainment) rather than vertically (within the same CIP at different levels of highest attainment).
+Again, if we hover over the off diagonal points, we see management and engineering jobs more prevalent for those with a MBA, and research type jobs more common for people with a MA in Economics. So here we see that there is an (ever so slightly) higher correlation between two different CIPs as the same highest educational attainment than between the same CIP at two different levels of highest attainment. This suggests that the closest fields of study might be found by searching horizontally (across different  CIPs at the same level of highest attainment) rather than vertically (within the same  CIP at different levels of highest attainment).
 
 ## How are maximally correlated Educations similar?
 
 We look at two dimensions of similarity:
 
-1)  Horizontal similarity is when two education paths share the same level of highest attained, but have differing CIP classifications.
-2)  Vertical similarity occurs when two education paths share the same CIP classification, but have differing levels of highest attainment.
-3)  ... and it is possible that the two education paths are neither horizontally nor vertically similar.
+1)  Horizontal similarity is when two education paths share the same level of highest attained, but have differing  CIP classifications.
+2)  Vertical similarity occurs when two education paths share the same  CIP classification, but have differing levels of highest attainment.
+3)  ... and it is possible that the two education paths share neither of the above measures of similarity.
 
-Of course, just because an education is the most highly correlated of all other educations does not imply that it is highly correlated:  some educations are niche.  So below we filter the results on the basis of some arbitrary minimal correlations, ranging from 0 (no correlation) to .9 (highly correlated).  The results (relative frequencies) do not appear to be sensitive to where we set the minimal correlation.  
+Of course, just because an education is the *most* highly correlated of all other educations does not imply that it *is* highly correlated:  some educations are pretty niche.  So below we filter the results on the basis of some arbitrary minimal correlations, ranging from 0 (no correlation) to .9 (highly correlated).  The relative frequency of the similarity counts is not sensitive to where we set the minimal correlation. 
 
 
 ```{r, fig.width=12, fig.height= 6, fig.retina=2}
@@ -211,23 +202,39 @@ ggplot(pearson_table, aes(factor(min_correlation),
        title="Closest education on the basis of Pearson correlation of log10(1+NOC counts)")
 ```
 
+## Conclusion:
+
+Based on the above it appears that signalling hidden ability (via highest attainment) is significantly more important than specific skill acquisition (via staying within the same  CIP).
+
 ## Caveats:
 
-You might be thinking that this is not a fair comparison: within a CIP there is at most 7 alternatives, whereas within a highest attainment there is at most 434 alternatives. I say at most because we have filtered out *educations* that have less than 1000 graduates employed. The best defense to this criticism I can think of is an analogy to a running race: if your goal is to win, what matters is the speed of the fastest competitor, not the shear number of competitors: are you more likely to win this race?
+```{r}
+ma_econ <- all_cor|>
+  filter(cip1=="45.06 Economics",
+         highest1=="Master's degree")
+```
+
+
+
+You might be thinking that this is not a fair comparison, as there are significant differences in the number of "competitor" educations in each of the three categories. For instance, consider a MA in Economics. There are `r nrow(ma_econ)` alternative educations, of which `r ma_econ|>filter(cip2!="45.06 Economics" & highest2=="Master's degree")|>nrow()` are a Masters in a different CIP, whereas only `r ma_econ|>filter(cip2=="45.06 Economics" & highest2!="Master's degree")|>nrow()` educations are in the same  CIP but at different levels of highest attainment.  The remainder of `r ma_econ|>filter(cip2!="45.06 Economics" & highest2!="Master's degree")|>nrow()` are share neither the same CIP nor the same highest attainment.  The best defense to this criticism I can think of is an analogy to a running race: if winner takes all, what matters is the speed of your fastest competitor, not the shear number of competitors you face: This:
 
 ![you vs seven Olympic finalists](images/hiuf5ahd3cbhr11q6m5m.webp){}
 
-or this race:
+vs. this:
 
 ![you vs. 70,000 weekend warriors](images/CTS21-content-atmosphere-crowd-startline3.jpg){fig-alt="Sydney fun run"}
 
 ## Top 5 correlated educations:
 
-By sorting by correlation one can see that there are some educations with no close substitutes: e.g. for `61.24 Psychiatry residency/fellowship programs`,  the top correlated field is `61.26 Radiology residency/fellowship programs`, with a correlation of .44. Education in business is at the other end of the spectrum.  E.g. for `52.01 Business/commerce, general` at the college level, the fifth most correlated education is `52.08 Finance and financial management services` with a correlation of .85.  On the basis of labour market outcomes, there does not seem to be much difference between the various subfields of business.
+By sorting by correlation ascending, the list is populated mostly with the medical fields, with a smattering of programs I wasn't even aware they existed: e.g.  `29.05 Military technologies and applied sciences`, `43.02 Fire protection`, `14.34 Forest engineering`.  
+
+If you sort descending, the list is populated with business degrees, or in fields of study with offerings at both `College, CEGEP or other non-university certificate` and `diploma and Apprenticeship or trades certificate or diploma`.
+
 
 ```{r}
 all_cor|>
   group_by(cip1, highest1)|>
+  select(-broad1,-broad2)|>
   mutate(ave_cor=(spearman_cor+pearson_cor)/2)|>
   slice_max(ave_cor, n=5)|>
   mutate(across(where(is.double), \(x) round(x, digits=2)))|>

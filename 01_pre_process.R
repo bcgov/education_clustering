@@ -39,7 +39,7 @@ spear_cor <- edu_noc|>
   pivot_wider(names_from = Education, values_from = value)|>
   column_to_rownames("NOC")|>
   correlate(method=c("spearman"))|>
-  shave()|> #keeps only lower triangle
+# shave()|> #keeps only lower triangle
   stretch(na.rm=TRUE)|> #converts to long format
   rename(spearman_cor=r)
 
@@ -48,7 +48,7 @@ pearson_cor <- edu_noc|>
   pivot_wider(names_from = Education, values_from = value)|>
   column_to_rownames("NOC")|>
   correlate(method=c("pearson"))|>
-  shave()|>
+#  shave()|>
   stretch(na.rm=TRUE)|>
   rename(pearson_cor=r)
 
